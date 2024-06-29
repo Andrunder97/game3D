@@ -1,10 +1,9 @@
 *.lock
 *.bin
 *.properties
-*.gradle
 *.bat
 *.jar
-
+*.probe
 .idea
 
 gradlew
