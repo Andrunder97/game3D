@@ -7,6 +7,8 @@ import org.lwjgl.opengl.*;
 import org.lwjgl.system.*;
 
 import java.nio.*;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.lwjgl.glfw.Callbacks.*;
 import static org.lwjgl.glfw.GLFW.*;
@@ -18,10 +20,11 @@ public class Main {
 
     private long window; //id window
 
-    private float posX = 0.0f;
-    private float posY = 0.0f;
-    private float posZ = -5.0f;
-    private float angle = 0.0f;
+    private final List<Cube> cubes = new ArrayList<>();
+
+    private Cube currentCube;
+
+    private boolean rotating = false;
 
     public void run() {
         init();
@@ -58,12 +61,17 @@ public class Main {
         glfwSetKeyCallback(window, (window, key, scancode, action, mods) -> {
             if (action == GLFW_PRESS || action == GLFW_REPEAT) { //move object
                 switch (key) {
-                    case GLFW_KEY_UP -> posY += 0.05f;
-                    case GLFW_KEY_DOWN -> posY -= 0.05f;
-                    case GLFW_KEY_LEFT -> posX -= 0.05f;
-                    case GLFW_KEY_RIGHT -> posX += 0.05f;
-                    case GLFW_KEY_W -> posZ += 0.05f;
-                    case GLFW_KEY_S -> posZ -= 0.05f;
+                    case GLFW_KEY_UP -> currentCube.setY(0.05f);
+                    case GLFW_KEY_DOWN -> currentCube.setY(-0.05f);
+                    case GLFW_KEY_LEFT -> currentCube.setX(-0.05f);
+                    case GLFW_KEY_RIGHT -> currentCube.setX(+0.05f);
+                    case GLFW_KEY_W -> currentCube.setZ(0.05f);
+                    case GLFW_KEY_S -> currentCube.setZ(-0.05f);
+                    case GLFW_KEY_R -> rotating = !rotating;
+                    case GLFW_KEY_ENTER -> {
+                        cubes.add(currentCube);
+                        currentCube = new Cube(0, 0, -5, 0);
+                    }
                 }
             }
 
@@ -71,6 +79,8 @@ public class Main {
                 glfwSetWindowShouldClose(window, true);
             }
         });
+
+        currentCube = new Cube(0, 0, -5, 0);
 
         // Get the thread stack and push a new frame
         try (MemoryStack stack = stackPush()) {
@@ -83,12 +93,14 @@ public class Main {
             // Get the resolution of the primary monitor
             GLFWVidMode vidmode = glfwGetVideoMode(glfwGetPrimaryMonitor());
 
-            // Center the window
-            glfwSetWindowPos(
-                    window,
-                    (vidmode.width() - pWidth.get(0)) / 2,
-                    (vidmode.height() - pHeight.get(0)) / 2
-            );
+            if (vidmode != null) {
+                // Center the window
+                glfwSetWindowPos(
+                        window,
+                        (vidmode.width() - pWidth.get(0)) / 2,
+                        (vidmode.height() - pHeight.get(0)) / 2
+                );
+            }
         } // the stack frame is popped automatically
 
         // Make the OpenGL context current
@@ -119,60 +131,15 @@ public class Main {
             //set 3D projection
             glMatrixMode(GL_PROJECTION);
             glLoadMatrixf(buf);
-            glMatrixMode(GL_MODELVIEW);
-            glLoadIdentity();
-            glTranslatef(posX, posY, posZ); //object coords
-            glRotatef(angle, 0f, 1f, 0f); //rotation on Y
-            glScalef(0.33f, 0.33f, 0.33f); //object size
 
-            //object description
-            glBegin(GL_QUADS);
+            for (Cube cube : cubes) {
+                drawCube(cube);
+            }
 
-            //front
-            glColor3f(1, 0, 0);
-            glVertex3f(-0.5f, -0.5f, 0.5f);
-            glVertex3f(0.5f, -0.5f, 0.5f);
-            glVertex3f(0.5f, 0.5f, 0.5f);
-            glVertex3f(-0.5f, 0.5f, 0.5f);
-
-            //back
-            glColor3f(0, 1, 0);
-            glVertex3f(-0.5f, -0.5f, -0.5f);
-            glVertex3f(-0.5f, 0.5f, -0.5f);
-            glVertex3f(0.5f, 0.5f, -0.5f);
-            glVertex3f(0.5f, -0.5f, -0.5f);
-
-            //top
-            glColor3f(0, 0, 1);
-            glVertex3f(-0.5f, 0.5f, -0.5f);
-            glVertex3f(-0.5f, 0.5f, 0.5f);
-            glVertex3f(0.5f, 0.5f, 0.5f);
-            glVertex3f(0.5f, 0.5f, -0.5f);
-
-            //bottom
-            glColor3f(1, 1, 0);
-            glVertex3f(-0.5f, -0.5f, -0.5f);
-            glVertex3f(0.5f, -0.5f, -0.5f);
-            glVertex3f(0.5f, -0.5f, 0.5f);
-            glVertex3f(-0.5f, -0.5f, 0.5f);
-
-            //right
-            glColor3f(1, 0, 1);
-            glVertex3f(0.5f, -0.5f, -0.5f);
-            glVertex3f(0.5f, 0.5f, -0.5f);
-            glVertex3f(0.5f, 0.5f, 0.5f);
-            glVertex3f(0.5f, -0.5f, 0.5f);
-
-            //left
-            glColor3f(0, 1, 1);
-            glVertex3f(-0.5f, -0.5f, -0.5f);
-            glVertex3f(-0.5f, -0.5f, 0.5f);
-            glVertex3f(-0.5f, 0.5f, 0.5f);
-            glVertex3f(-0.5f, 0.5f, -0.5f);
-
-            glEnd();
-
-            angle += 0.5f;
+            drawCube(currentCube);
+            if (rotating) {
+                currentCube.setAngle(0.5f);
+            }
 
             glfwSwapBuffers(window); // swap the color buffers
 
@@ -180,6 +147,61 @@ public class Main {
             // invoked during this call.
             glfwPollEvents();
         }
+    }
+
+    private void drawCube(Cube cube) {
+        glMatrixMode(GL_MODELVIEW);
+        glLoadIdentity();
+        glTranslatef(cube.getX(), cube.getY(), cube.getZ()); //object coords
+        glRotatef(cube.getAngle(), 0f, 1f, 0f); //rotation on Y
+        glScalef(0.33f, 0.33f, 0.33f); //object size
+
+        //object description
+        glBegin(GL_QUADS);
+
+        //front
+        glColor3f(1, 0, 0);
+        glVertex3f(-0.5f, -0.5f, 0.5f);
+        glVertex3f(0.5f, -0.5f, 0.5f);
+        glVertex3f(0.5f, 0.5f, 0.5f);
+        glVertex3f(-0.5f, 0.5f, 0.5f);
+
+        //back
+        glColor3f(0, 1, 0);
+        glVertex3f(-0.5f, -0.5f, -0.5f);
+        glVertex3f(-0.5f, 0.5f, -0.5f);
+        glVertex3f(0.5f, 0.5f, -0.5f);
+        glVertex3f(0.5f, -0.5f, -0.5f);
+
+        //top
+        glColor3f(0, 0, 1);
+        glVertex3f(-0.5f, 0.5f, -0.5f);
+        glVertex3f(-0.5f, 0.5f, 0.5f);
+        glVertex3f(0.5f, 0.5f, 0.5f);
+        glVertex3f(0.5f, 0.5f, -0.5f);
+
+        //bottom
+        glColor3f(1, 1, 0);
+        glVertex3f(-0.5f, -0.5f, -0.5f);
+        glVertex3f(0.5f, -0.5f, -0.5f);
+        glVertex3f(0.5f, -0.5f, 0.5f);
+        glVertex3f(-0.5f, -0.5f, 0.5f);
+
+        //right
+        glColor3f(1, 0, 1);
+        glVertex3f(0.5f, -0.5f, -0.5f);
+        glVertex3f(0.5f, 0.5f, -0.5f);
+        glVertex3f(0.5f, 0.5f, 0.5f);
+        glVertex3f(0.5f, -0.5f, 0.5f);
+
+        //left
+        glColor3f(0, 1, 1);
+        glVertex3f(-0.5f, -0.5f, -0.5f);
+        glVertex3f(-0.5f, -0.5f, 0.5f);
+        glVertex3f(-0.5f, 0.5f, 0.5f);
+        glVertex3f(-0.5f, 0.5f, -0.5f);
+
+        glEnd();
     }
 
     public static void main(String[] args) {
