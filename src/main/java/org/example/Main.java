@@ -82,6 +82,14 @@ public class Main {
 
         currentCube = new Cube(0, 0, -5, 0);
 
+        for (int row = 0; row < 6; row++) {
+            float z = -4.1f - row * 0.3f;
+            for (int i = 0; i < 25; i++) {
+                float x = -3.4f + i * 0.3f;
+                cubes.add(new Cube(x, -1.7f, z, 0));
+            }
+        }
+
         // Get the thread stack and push a new frame
         try (MemoryStack stack = stackPush()) {
             IntBuffer pWidth = stack.mallocInt(1); // int*
@@ -112,6 +120,42 @@ public class Main {
         glfwShowWindow(window);
     }
 
+    private void gradientBg() {
+        glMatrixMode(GL_PROJECTION); //create projection switch to 3D mode
+        glPushMatrix(); //save matrix state
+        glLoadIdentity(); //drop matrix to current state
+        glOrtho(0, 800, 0, 600, -1, 1); //ortho projection
+
+        glMatrixMode(GL_MODELVIEW); // switch to view mode
+        glPushMatrix(); //save matrix state
+        glLoadIdentity(); //drop matrix to current state
+
+        glEnable(GL_BLEND); //mix colours
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_DST_ALPHA); //mix function
+
+        glDepthMask(false); //off depth
+
+        //start draw gradient
+        glBegin(GL_QUADS);
+
+        glColor3f(0.0f, 0.3f, 0.7f); //bottom
+        glVertex2f(0, 0);
+        glVertex2f(800, 0);
+
+        glColor3f(0.0f, 0.7f, 1f); //top
+        glVertex2f(800, 600);
+        glVertex2f(0, 600);
+
+        glEnd();
+
+        glDepthMask(true);
+        glDisable(GL_BLEND);
+        glPopMatrix();
+        glMatrixMode(GL_PROJECTION);
+        glPopMatrix();
+        glMatrixMode(GL_MODELVIEW);
+    }
+
     private void loop() {
         //create area
         GL.createCapabilities();
@@ -131,6 +175,8 @@ public class Main {
             //set 3D projection
             glMatrixMode(GL_PROJECTION);
             glLoadMatrixf(buf);
+
+            gradientBg();
 
             for (Cube cube : cubes) {
                 drawCube(cube);
@@ -160,28 +206,28 @@ public class Main {
         glBegin(GL_QUADS);
 
         //front
-        glColor3f(1, 0, 0);
+        glColor3f(79 / 255f, 171 / 255f, 67 / 255f);
         glVertex3f(-0.5f, -0.5f, 0.5f);
         glVertex3f(0.5f, -0.5f, 0.5f);
         glVertex3f(0.5f, 0.5f, 0.5f);
         glVertex3f(-0.5f, 0.5f, 0.5f);
 
         //back
-        glColor3f(0, 1, 0);
+        glColor3f(79 / 255f, 171 / 255f, 67 / 255f);
         glVertex3f(-0.5f, -0.5f, -0.5f);
         glVertex3f(-0.5f, 0.5f, -0.5f);
         glVertex3f(0.5f, 0.5f, -0.5f);
         glVertex3f(0.5f, -0.5f, -0.5f);
 
         //top
-        glColor3f(0, 0, 1);
+        glColor3f(36 / 255f, 79 / 255f, 31 / 255f);
         glVertex3f(-0.5f, 0.5f, -0.5f);
         glVertex3f(-0.5f, 0.5f, 0.5f);
         glVertex3f(0.5f, 0.5f, 0.5f);
         glVertex3f(0.5f, 0.5f, -0.5f);
 
         //bottom
-        glColor3f(1, 1, 0);
+        glColor3f(36 / 255f, 79 / 255f, 31 / 255f);
         glVertex3f(-0.5f, -0.5f, -0.5f);
         glVertex3f(0.5f, -0.5f, -0.5f);
         glVertex3f(0.5f, -0.5f, 0.5f);
